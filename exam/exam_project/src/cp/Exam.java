@@ -187,7 +187,7 @@ public class Exam {
         if (executorService.isShutdown()) {
             executorService = Executors.newWorkStealingPool(cores);
         }
-        // calling dial() on the directory to search through the files
+//    calling the second dial on the directory to search through the files
         dial_2(dir, min);
         executorService.shutdown();
 
@@ -198,9 +198,9 @@ public class Exam {
         return result;
 
     }
-    // going through all folders and text-files
-    // running executor for task 1 if any file has a .txt suffix
 
+//    going through all files and sub-directories
+//    if the file ends with a ".dat", the second constructor is called
     private static void dial_2(Path dir, int min) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
@@ -214,8 +214,10 @@ public class Exam {
             }
         }
     }
-    // finding the lowest number in all the files
 
+//    searching through all the lines in the given file.
+//    if the number on each line, added together is at least as big as the "min"
+//    parameter, the method returns the directory and line
     private static void find(Path dir, int min) throws FileNotFoundException {
         String str = dir.toString();
 
@@ -257,8 +259,6 @@ public class Exam {
 
             scan.nextLine();
         }
-
-//        System.out.println("I read " + count + " lines  in path " + str);
     }
 
     /**
