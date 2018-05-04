@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -19,7 +21,8 @@ public class Exam {
 
 //    initalizing the executorservice and the final array, containning the results
     private static final int cores = Runtime.getRuntime().availableProcessors();
-    private static ExecutorService executorService = Executors.newWorkStealingPool(cores);
+    private static ExecutorService executorServiceM1 = Executors.newWorkStealingPool(cores);
+    private static ExecutorService executorServiceM2 = Executors.newWorkStealingPool(cores);
     private static final ArrayList ResultList = new ArrayList<Result>();
     private static int lownumber;
     private static int count;
@@ -71,15 +74,15 @@ public class Exam {
 
     public static List< Result> m1(Path dir) throws IOException {
 //         if the executor is shut down, creates a new one.
-        if (executorService.isShutdown()) {
-            executorService = Executors.newWorkStealingPool(cores);
+        if (executorServiceM1.isShutdown()) {
+            executorServiceM1 = Executors.newWorkStealingPool(cores);
         }
 //         calling dial() on the directory to search through the files
         dial(dir);
-        executorService.shutdown();
+        executorServiceM1.shutdown();
 
         while (ResultList.isEmpty()) {
-            executorService.shutdown();
+            executorServiceM1.shutdown();
         }
         return ResultList;
     }
@@ -91,7 +94,7 @@ public class Exam {
             for (Path p : stream) {
                 if (p.toString().endsWith(".txt")) {
                     Runnable run = new task1(p);
-                    executorService.execute(run);
+                    executorServiceM1.execute(run);
 
                 } else if (Files.isDirectory(p)) {
                     dial(p);
@@ -184,15 +187,15 @@ public class Exam {
 
     public static Result m2(Path dir, int min) throws IOException {
 //    if the executor is shut down, creates a new one.
-        if (executorService.isShutdown()) {
-            executorService = Executors.newWorkStealingPool(cores);
+        if (executorServiceM2.isShutdown()) {
+            executorServiceM2 = Executors.newWorkStealingPool(cores);
         }
 //    calling the second dial on the directory to search through the files
         dial_2(dir, min);
-        executorService.shutdown();
+        executorServiceM2.shutdown();
 
         while (ResultList.isEmpty()) {
-            executorService.shutdown();
+            executorServiceM2.shutdown();
         }
         Result result = (Result) ResultList.get(0);
         return result;
@@ -206,7 +209,7 @@ public class Exam {
             for (Path p : stream) {
                 if (p.toString().endsWith(".dat")) {
                     Runnable run = new task2(p, min);
-                    executorService.execute(run);
+                    executorServiceM2.execute(run);
 
                 } else if (Files.isDirectory(p)) {
                     dial_2(p, min);
@@ -271,6 +274,41 @@ public class Exam {
      * {@link Stats}.
      */
     public static Stats m3(Path dir) {
-        throw new UnsupportedOperationException();
+        
+        Map<Integer, Integer> dict = new HashMap<>();
+        
+        Stats stat = new Stats() {
+            
+            
+            
+            @Override
+            public int occurrences(int number) {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public List<Path> atMost(int max) {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public int mostFrequent() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public int leastFrequent() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public List<Path> byTotals() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        };
+        
+        
+        
+        return null;
     }
 }

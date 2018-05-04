@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
         long start = System.currentTimeMillis();
-//        m1();
+        m1();
         m2();
 
         long end = (System.currentTimeMillis() - start);
