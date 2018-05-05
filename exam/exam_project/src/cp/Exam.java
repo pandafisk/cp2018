@@ -3,6 +3,7 @@ package cp;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,9 +25,13 @@ public class Exam {
     private static final int cores = Runtime.getRuntime().availableProcessors();
     private static ExecutorService executorServiceM1 = Executors.newWorkStealingPool(cores);
     private static ExecutorService executorServiceM2 = Executors.newWorkStealingPool(cores);
+    private static ExecutorService executorServiceM3 = Executors.newWorkStealingPool(cores);
+
     private static final ArrayList ResultList = new ArrayList<Result>();
     private static int lownumber;
     private static int count;
+
+    private final static ConcurrentHashMap<Integer, Integer> dictionary = new ConcurrentHashMap<>();
 
     /**
      * This method recursively visits a directory to find all the text files
@@ -273,17 +279,49 @@ public class Exam {
      * containing the statistics of interest. See the documentation of
      * {@link Stats}.
      */
-    public static Stats m3(Path dir) {
-        
-        Map<Integer, Integer> dict = new HashMap<>();
-        
+    public static class task3 implements Runnable {
+
+        private final Path dir;
+
+//    setting up a constructor
+        private task3(Path dir) {
+            this.dir = dir;
+        }
+
+        @Override
+        public void run() {
+            try {
+                statistics(dir);
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Exam.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    public static Stats m3(Path dir) throws IOException, InterruptedException {
+//    if the executor is shut down, creates a new one.
+        if (executorServiceM3.isShutdown()) {
+            executorServiceM3 = Executors.newWorkStealingPool(cores);
+        }
+//    calling the third dial on the directory to search through the files
+        dial_3(dir);
+        executorServiceM3.shutdown();
+        executorServiceM3.awaitTermination(1, TimeUnit.MINUTES);
+
+        while (dictionary.isEmpty()) {
+            executorServiceM3.shutdown();
+        }
+
         Stats stat = new Stats() {
-            
-            
-            
             @Override
             public int occurrences(int number) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                int occ = 0;
+                for (Integer name : dictionary.keySet()) {
+                    if (name == number) {
+                        occ = dictionary.get(name);
+                    }
+                }
+                return occ;
             }
 
             @Override
@@ -293,12 +331,32 @@ public class Exam {
 
             @Override
             public int mostFrequent() {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                int freq = Integer.MIN_VALUE;
+                int best = 0;
+                
+                for (Integer key : dictionary.keySet()){
+                    if (dictionary.get(key) > freq){
+                        freq = dictionary.get(key);
+                        best = key;
+                    }
+                }
+                
+              return best;  
             }
 
             @Override
             public int leastFrequent() {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                int freq = Integer.MAX_VALUE;
+                int worst = 0;
+                
+                for (Integer key : dictionary.keySet()){
+                    if (dictionary.get(key) < freq){
+                        freq = dictionary.get(key);
+                        worst = key;
+                    }
+                }
+                
+              return worst;
             }
 
             @Override
@@ -306,9 +364,89 @@ public class Exam {
                 throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
-        
-        
-        
-        return null;
+
+        return stat;
+
     }
+
+    private static void dial_3(Path dir) throws IOException {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+            for (Path p : stream) {
+                if (p.toString().endsWith(".dat")) {
+//                    statistics(dir);
+                    Runnable run = new task3(p);
+                    executorServiceM3.execute(run);
+//                    System.out.println(p.toAbsolutePath());
+
+                } else if (p.toString().endsWith(".txt")) {
+//                    statistics(dir);
+                    Runnable run = new task3(p);
+                    executorServiceM3.execute(run);
+//                    System.out.println(p.toAbsolutePath());
+
+                } else if (Files.isDirectory(p)) {
+                    dial_3(p);
+                }
+            }
+        }
+    }
+
+    private static void statistics(Path dir) throws FileNotFoundException {
+        String str = dir.toString();
+        Scanner scan = new Scanner(new File(str));
+        while (scan.hasNextLine()) {
+            String next = scan.next();
+
+            List<String> strArr = Arrays.asList(next.split(","));
+            List<Integer> intArr = new ArrayList<>();
+
+            for (String string : strArr) {
+                intArr.add(Integer.valueOf(string));
+//                System.out.println(string + " added to arr ");
+            }
+            synchronized (dictionary) {
+                for (int i : intArr) {
+//                System.out.println("adding " + i + " to the dict");
+                    AddToDict(i);
+                }
+            }
+            scan.nextLine();
+        }
+    }
+
+    private static void AddToDict(int i) {
+        synchronized (dictionary) {
+//            System.out.println("    -" + i + " added ");
+            Integer bob = dictionary.get(i);
+
+            if (!dictionary.containsKey(i)) {
+                dictionary.put(i, 1);
+            } else {
+                dictionary.put(i, bob + 1);
+            }
+        }
+    }
+
+    public static void getDict() {
+        for (Integer name : dictionary.keySet()) {
+//            if (name == value) {
+            String key = name.toString();
+            String value = dictionary.get(name).toString();
+
+            System.out.println(key + " : " + value);
+//            }
+        }
+
+    }
+
+    public static int occu(int number) {
+        int occ = 0;
+        for (Integer name : dictionary.keySet()) {
+            if (name == number) {
+                occ = dictionary.get(name);
+            }
+        }
+        return occ;
+    }
+
 }
