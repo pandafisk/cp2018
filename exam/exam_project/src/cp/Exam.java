@@ -26,6 +26,7 @@ public class Exam {
     private static ExecutorService executorServiceM1 = Executors.newWorkStealingPool(cores);
     private static ExecutorService executorServiceM2 = Executors.newWorkStealingPool(cores);
     private static ExecutorService executorServiceM3 = Executors.newWorkStealingPool(cores);
+    private static ExecutorService executorServiceM4 = Executors.newWorkStealingPool(cores);
 
     private static final ArrayList ResultList = new ArrayList<Result>();
     private static int lownumber;
@@ -291,14 +292,14 @@ public class Exam {
         @Override
         public void run() {
             try {
-                statistics(dir);
+                DictMaker(dir);
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Exam.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
 
-    public static Stats m3(Path dir) throws IOException, InterruptedException {
+    public static Stats m3(Path dir) throws IOException, InterruptedException, FileNotFoundException {
 //    if the executor is shut down, creates a new one.
         if (executorServiceM3.isShutdown()) {
             executorServiceM3 = Executors.newWorkStealingPool(cores);
@@ -312,7 +313,8 @@ public class Exam {
             executorServiceM3.shutdown();
         }
 
-        Stats stat = new Stats() {
+        Stats stat;
+        stat = new Stats() {
             @Override
             public int occurrences(int number) {
                 int occ = 0;
@@ -323,40 +325,32 @@ public class Exam {
                 }
                 return occ;
             }
-
-            @Override
-            public List<Path> atMost(int max) {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-            }
-
             @Override
             public int mostFrequent() {
                 int freq = Integer.MIN_VALUE;
-                int best = 0;
-                
-                for (Integer key : dictionary.keySet()){
-                    if (dictionary.get(key) > freq){
+                int most = 0;
+
+                for (Integer key : dictionary.keySet()) {
+                    if (dictionary.get(key) > freq) {
                         freq = dictionary.get(key);
-                        best = key;
+                        most = key;
                     }
                 }
-                
-              return best;  
+                return most;
             }
 
             @Override
             public int leastFrequent() {
                 int freq = Integer.MAX_VALUE;
-                int worst = 0;
-                
-                for (Integer key : dictionary.keySet()){
-                    if (dictionary.get(key) < freq){
+                int least = 0;
+
+                for (Integer key : dictionary.keySet()) {
+                    if (dictionary.get(key) < freq) {
                         freq = dictionary.get(key);
-                        worst = key;
+                        least = key;
                     }
                 }
-                
-              return worst;
+                return least;
             }
 
             @Override
@@ -373,16 +367,12 @@ public class Exam {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
                 if (p.toString().endsWith(".dat")) {
-//                    statistics(dir);
                     Runnable run = new task3(p);
                     executorServiceM3.execute(run);
-//                    System.out.println(p.toAbsolutePath());
 
                 } else if (p.toString().endsWith(".txt")) {
-//                    statistics(dir);
                     Runnable run = new task3(p);
                     executorServiceM3.execute(run);
-//                    System.out.println(p.toAbsolutePath());
 
                 } else if (Files.isDirectory(p)) {
                     dial_3(p);
@@ -391,7 +381,7 @@ public class Exam {
         }
     }
 
-    private static void statistics(Path dir) throws FileNotFoundException {
+    private static void DictMaker(Path dir) throws FileNotFoundException {
         String str = dir.toString();
         Scanner scan = new Scanner(new File(str));
         while (scan.hasNextLine()) {
@@ -402,51 +392,33 @@ public class Exam {
 
             for (String string : strArr) {
                 intArr.add(Integer.valueOf(string));
-//                System.out.println(string + " added to arr ");
             }
             synchronized (dictionary) {
-                for (int i : intArr) {
-//                System.out.println("adding " + i + " to the dict");
+                intArr.forEach((i) -> {
                     AddToDict(i);
-                }
+                });
             }
             scan.nextLine();
         }
     }
 
     private static void AddToDict(int i) {
-        synchronized (dictionary) {
-//            System.out.println("    -" + i + " added ");
-            Integer bob = dictionary.get(i);
+        Integer bob = dictionary.get(i);
 
-            if (!dictionary.containsKey(i)) {
-                dictionary.put(i, 1);
-            } else {
-                dictionary.put(i, bob + 1);
-            }
+        if (!dictionary.containsKey(i)) {
+            dictionary.put(i, 1);
+        } else {
+            dictionary.put(i, bob + 1);
         }
     }
 
     public static void getDict() {
-        for (Integer name : dictionary.keySet()) {
-//            if (name == value) {
+        dictionary.keySet().forEach((name) -> {
             String key = name.toString();
             String value = dictionary.get(name).toString();
 
-            System.out.println(key + " : " + value);
-//            }
-        }
+            System.out.println(key + " : " + value + " time(s)");
+        });
 
     }
-
-    public static int occu(int number) {
-        int occ = 0;
-        for (Integer name : dictionary.keySet()) {
-            if (name == number) {
-                occ = dictionary.get(name);
-            }
-        }
-        return occ;
-    }
-
 }

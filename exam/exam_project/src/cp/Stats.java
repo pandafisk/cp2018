@@ -15,11 +15,7 @@ public interface Stats
 	 * Returns the number of times that a number was found (in any files).
 	 */
 	public int occurrences( int number );
-	
-	/**
-	 * Returns the list of files that do not contain numbers that are greater than max.
-	 */
-	public List< Path > atMost( int max );
+
 	
 	/**
 	 * Returns the number that was found the most times.

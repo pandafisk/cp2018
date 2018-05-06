@@ -1,6 +1,7 @@
 package cp;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -38,11 +39,13 @@ public class Main {
     public static void m3() throws IOException, InterruptedException {
         Path p = dir.toPath();
         Stats stat = Exam.m3(p);
-        int num = 123;
-        
-//        Exam.getDict();
-        System.out.println("The value '"+ num + "' occurred " + stat.occurrences(num) + " times" );
+        int num = 1;
+        int max = 123;
+
+        Exam.getDict();
+        System.out.println("The value '" + num + "' occurred " + stat.occurrences(num) + " times");
         System.out.println("The most frequent number is: " + stat.mostFrequent());
         System.out.println("The least frequent number is: " + stat.leastFrequent());
+
     }
 }
