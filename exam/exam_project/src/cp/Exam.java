@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -29,10 +31,16 @@ public class Exam {
     private static ExecutorService executorServiceM4 = Executors.newWorkStealingPool(cores);
 
     private static final ArrayList ResultList = new ArrayList<Result>();
+    private static final ArrayList ResultList2 = new ArrayList<Result>();
+    public static final ArrayList ResultList3 = new ArrayList<Result>();
+    private static final List<Path> PathList = new ArrayList<Path>();
+
     private static int lownumber;
     private static int count;
+    private static int total;
 
     private final static ConcurrentHashMap<Integer, Integer> dictionary = new ConcurrentHashMap<>();
+    private final static ConcurrentHashMap<Path, Integer> dictionary2 = new ConcurrentHashMap<>();
 
     /**
      * This method recursively visits a directory to find all the text files
@@ -192,7 +200,7 @@ public class Exam {
         }
     }
 
-    public static Result m2(Path dir, int min) throws IOException {
+    public static Result m2(Path dir, int min) throws IOException, InterruptedException {
 //    if the executor is shut down, creates a new one.
         if (executorServiceM2.isShutdown()) {
             executorServiceM2 = Executors.newWorkStealingPool(cores);
@@ -200,11 +208,12 @@ public class Exam {
 //    calling the second dial on the directory to search through the files
         dial_2(dir, min);
         executorServiceM2.shutdown();
+        executorServiceM2.awaitTermination(20, TimeUnit.SECONDS);
 
-        while (ResultList.isEmpty()) {
+        while (ResultList2.isEmpty()) {
             executorServiceM2.shutdown();
         }
-        Result result = (Result) ResultList.get(0);
+        Result result = (Result) ResultList2.get(0);
         return result;
 
     }
@@ -252,8 +261,8 @@ public class Exam {
             if (total >= min) {
                 return;
             } else {
-                synchronized (ResultList) {
-                    ResultList.add(new Result() {
+                synchronized (ResultList2) {
+                    ResultList2.add(new Result() {
                         @Override
                         public Path path() {
                             return dir;
@@ -292,7 +301,7 @@ public class Exam {
         @Override
         public void run() {
             try {
-                DictMaker(dir);
+                DictMaker(dictionary, dir);
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Exam.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -325,6 +334,7 @@ public class Exam {
                 }
                 return occ;
             }
+
             @Override
             public int mostFrequent() {
                 int freq = Integer.MIN_VALUE;
@@ -355,7 +365,14 @@ public class Exam {
 
             @Override
             public List<Path> byTotals() {
-                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                try {
+                    dial_4(dir);
+                } catch (IOException ex) {
+                    Logger.getLogger(Exam.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+                getRes3();
+                return ResultList;
             }
         };
 
@@ -381,7 +398,23 @@ public class Exam {
         }
     }
 
-    private static void DictMaker(Path dir) throws FileNotFoundException {
+    private static void dial_4(Path dir) throws IOException {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
+            for (Path p : stream) {
+                if (p.toString().endsWith(".dat")) {
+                    getTotal(p);
+
+                } else if (p.toString().endsWith(".txt")) {
+                    getTotal(p);
+
+                } else if (Files.isDirectory(p)) {
+                    dial_4(p);
+                }
+            }
+        }
+    }
+
+    private static void DictMaker(ConcurrentHashMap<Integer, Integer> dict, Path dir) throws FileNotFoundException {
         String str = dir.toString();
         Scanner scan = new Scanner(new File(str));
         while (scan.hasNextLine()) {
@@ -393,22 +426,18 @@ public class Exam {
             for (String string : strArr) {
                 intArr.add(Integer.valueOf(string));
             }
-            synchronized (dictionary) {
+            synchronized (dict) {
                 intArr.forEach((i) -> {
-                    AddToDict(i);
+                    Integer bob = dict.get(i);
+
+                    if (!dict.containsKey(i)) {
+                        dict.put(i, 1);
+                    } else {
+                        dict.put(i, bob + 1);
+                    }
                 });
             }
             scan.nextLine();
-        }
-    }
-
-    private static void AddToDict(int i) {
-        Integer bob = dictionary.get(i);
-
-        if (!dictionary.containsKey(i)) {
-            dictionary.put(i, 1);
-        } else {
-            dictionary.put(i, bob + 1);
         }
     }
 
@@ -421,4 +450,74 @@ public class Exam {
         });
 
     }
+
+    private static void getTotal(Path dir) throws FileNotFoundException {
+        String str = dir.toString();
+        total = 0;
+        Scanner scan = new Scanner(new File(str));
+
+        while (scan.hasNextLine()) {
+            String next = scan.next();
+            List<String> strArr = Arrays.asList(next.split(","));
+            List<Integer> intArr = new ArrayList<>();
+
+            for (String string : strArr) {
+                intArr.add(Integer.valueOf(string));
+            }
+
+            total += intArr.get(0);
+            for (int i = 0; i < intArr.size() - 1; i++) {
+                total += intArr.get(i);
+            }
+            scan.nextLine();
+        }
+        synchronized (ResultList3) {
+            final int num = total;
+            Result result = new Result() {
+                @Override
+                public Path path() {
+                    return dir;
+                }
+
+                @Override
+                public int number() {
+                    return num;
+                }
+            };
+            ResultList3.add(result);
+//            System.out.println("Total for dir: " + result.path() + " is: " + result.number());
+        }
+    }
+//        
+//        return total;
+
+    public static List getRes3() {
+
+        for (int i = 0; i < ResultList3.size() - 1; i++) {
+            Result result = (Result) ResultList3.get(i);
+//            System.out.println("Total for dir '" + result.path() + "' is: " + result.number());
+
+            dictionary2.putIfAbsent(result.path(), result.number());
+        }
+
+        List<Path> AList = new ArrayList<>(dictionary2.keySet());
+        Collections.sort(AList, (Path path1, Path path2) -> dictionary2.get(path1) - dictionary2.get(path2));
+
+//        System.out.println("\nAnd sorted: ");
+        for (Path name : AList) {
+
+            ResultList.add(name);
+
+//            String key = name.toString();
+//            String value = dictionary2.get(name).toString();
+//            System.out.println(value + " " + key);
+
+        }
+        for (Object name : ResultList){
+//            System.out.println(name);
+        }
+        return ResultList;
+
+    }
+
 }
