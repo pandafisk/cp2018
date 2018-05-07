@@ -10,37 +10,31 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Exam {
 
-//    initalizing the executorservice and the final array, containning the results
+//    initalizing the executorservice and the final array, containning the results, along with other variables used
+//    Multiple of both executirService and ResultList is created, in case all functions gets tested at the same time
     private static final int cores = Runtime.getRuntime().availableProcessors();
     private static ExecutorService executorServiceM1 = Executors.newWorkStealingPool(cores);
     private static ExecutorService executorServiceM2 = Executors.newWorkStealingPool(cores);
     private static ExecutorService executorServiceM3 = Executors.newWorkStealingPool(cores);
-    private static ExecutorService executorServiceM4 = Executors.newWorkStealingPool(cores);
 
     private static final ArrayList ResultList = new ArrayList<Result>();
     private static final ArrayList ResultList2 = new ArrayList<Result>();
     public static final ArrayList ResultList3 = new ArrayList<Result>();
-    private static final List<Path> PathList = new ArrayList<Path>();
+
+    private final static ConcurrentHashMap<Integer, Integer> dictionary = new ConcurrentHashMap<>();
+    private final static ConcurrentHashMap<Path, Integer> dictionary2 = new ConcurrentHashMap<>();
 
     private static int lownumber;
     private static int count;
     private static int total;
-
-    private final static ConcurrentHashMap<Integer, Integer> dictionary = new ConcurrentHashMap<>();
-    private final static ConcurrentHashMap<Path, Integer> dictionary2 = new ConcurrentHashMap<>();
 
     /**
      * This method recursively visits a directory to find all the text files
@@ -68,12 +62,12 @@ public class Exam {
      * found in a file
      */
 //        TASK 1
-    public static class task1 implements Runnable {
+    public static class assignment1 implements Runnable {
 
         private final Path p;
 
 //         setting up a constructor
-        private task1(Path dir) {
+        private assignment1(Path dir) {
             this.p = dir;
         }
 
@@ -108,7 +102,7 @@ public class Exam {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
                 if (p.toString().endsWith(".txt")) {
-                    Runnable run = new task1(p);
+                    Runnable run = new assignment1(p);
                     executorServiceM1.execute(run);
 
                 } else if (Files.isDirectory(p)) {
@@ -179,13 +173,13 @@ public class Exam {
      *
      */
 //    Task 2
-    public static class task2 implements Runnable {
+    public static class assignment2 implements Runnable {
 
         private final Path dir;
         private final int min;
 
 //    setting up a constructor
-        private task2(Path dir, int min) {
+        private assignment2(Path dir, int min) {
             this.dir = dir;
             this.min = min;
         }
@@ -224,7 +218,7 @@ public class Exam {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
                 if (p.toString().endsWith(".dat")) {
-                    Runnable run = new task2(p, min);
+                    Runnable run = new assignment2(p, min);
                     executorServiceM2.execute(run);
 
                 } else if (Files.isDirectory(p)) {
@@ -246,10 +240,12 @@ public class Exam {
         while (scan.hasNextLine()) {
             count++;
             String next = scan.next();
-
+            
+//            Splitting strings by ","
             List<String> strArr = Arrays.asList(next.split(","));
             List<Integer> intArr = new ArrayList<>();
-
+            
+//            converting the Stringarray to an int Array
             for (String string : strArr) {
                 intArr.add(Integer.valueOf(string));
             }
@@ -261,6 +257,7 @@ public class Exam {
             if (total >= min) {
                 return;
             } else {
+//            Synchronizing the results gathered
                 synchronized (ResultList2) {
                     ResultList2.add(new Result() {
                         @Override
@@ -289,12 +286,12 @@ public class Exam {
      * containing the statistics of interest. See the documentation of
      * {@link Stats}.
      */
-    public static class task3 implements Runnable {
+    public static class assignment3 implements Runnable {
 
         private final Path dir;
 
 //    setting up a constructor
-        private task3(Path dir) {
+        private assignment3(Path dir) {
             this.dir = dir;
         }
 
@@ -324,7 +321,9 @@ public class Exam {
 
         Stats stat;
         stat = new Stats() {
+//    implementing the functions from the interface
             @Override
+//    returns the number of instances for a number in all the files
             public int occurrences(int number) {
                 int occ = 0;
                 for (Integer name : dictionary.keySet()) {
@@ -336,6 +335,7 @@ public class Exam {
             }
 
             @Override
+//    returns the most frequent number in all the files
             public int mostFrequent() {
                 int freq = Integer.MIN_VALUE;
                 int most = 0;
@@ -350,6 +350,7 @@ public class Exam {
             }
 
             @Override
+//    returns the least frequent number in all the files
             public int leastFrequent() {
                 int freq = Integer.MAX_VALUE;
                 int least = 0;
@@ -364,6 +365,7 @@ public class Exam {
             }
 
             @Override
+//    returns a list af all files, ordered by the total amount of the values added together
             public List<Path> byTotals() {
                 try {
                     dial_4(dir);
@@ -371,7 +373,7 @@ public class Exam {
                     Logger.getLogger(Exam.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
-                getRes3();
+                getRes();
                 return ResultList;
             }
         };
@@ -379,16 +381,18 @@ public class Exam {
         return stat;
 
     }
-
+    
+//    visits all subdirectories recursively
+//    If a file ends with either ".txt" or ".dat", the constructor is called
     private static void dial_3(Path dir) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
                 if (p.toString().endsWith(".dat")) {
-                    Runnable run = new task3(p);
+                    Runnable run = new assignment3(p);
                     executorServiceM3.execute(run);
 
                 } else if (p.toString().endsWith(".txt")) {
-                    Runnable run = new task3(p);
+                    Runnable run = new assignment3(p);
                     executorServiceM3.execute(run);
 
                 } else if (Files.isDirectory(p)) {
@@ -398,6 +402,8 @@ public class Exam {
         }
     }
 
+//    visits all subdirectories recursively
+//    If a file ends with either ".txt" or ".dat", the function getTotal() is called
     private static void dial_4(Path dir) throws IOException {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path p : stream) {
@@ -414,19 +420,24 @@ public class Exam {
         }
     }
 
+//    The function updating the concurrentHashMap, containing the frequency of each number in all the files
     private static void DictMaker(ConcurrentHashMap<Integer, Integer> dict, Path dir) throws FileNotFoundException {
         String str = dir.toString();
         Scanner scan = new Scanner(new File(str));
+//    Iterating through each line of the file
         while (scan.hasNextLine()) {
             String next = scan.next();
-
+            
+//    Splitting the line by ","
             List<String> strArr = Arrays.asList(next.split(","));
             List<Integer> intArr = new ArrayList<>();
 
+//    converting the String array to int array
             for (String string : strArr) {
                 intArr.add(Integer.valueOf(string));
             }
             synchronized (dict) {
+//    adding another instance of each number once, synchronized to ensure thread safe
                 intArr.forEach((i) -> {
                     Integer bob = dict.get(i);
 
@@ -441,6 +452,7 @@ public class Exam {
         }
     }
 
+//    Getter for the dictionary
     public static void getDict() {
         dictionary.keySet().forEach((name) -> {
             String key = name.toString();
@@ -451,26 +463,33 @@ public class Exam {
 
     }
 
+//    function to get the total value of the file
     private static void getTotal(Path dir) throws FileNotFoundException {
         String str = dir.toString();
         total = 0;
         Scanner scan = new Scanner(new File(str));
 
+//    Iterating through each line
         while (scan.hasNextLine()) {
             String next = scan.next();
+            
+//    Splitting by ","
             List<String> strArr = Arrays.asList(next.split(","));
             List<Integer> intArr = new ArrayList<>();
 
+//    Converting String array to int array
             for (String string : strArr) {
                 intArr.add(Integer.valueOf(string));
             }
 
+//            computing the total value of the file
             total += intArr.get(0);
             for (int i = 0; i < intArr.size() - 1; i++) {
                 total += intArr.get(i);
             }
             scan.nextLine();
         }
+//    synchronizing the result and adding to a list
         synchronized (ResultList3) {
             final int num = total;
             Result result = new Result() {
@@ -485,36 +504,21 @@ public class Exam {
                 }
             };
             ResultList3.add(result);
-//            System.out.println("Total for dir: " + result.path() + " is: " + result.number());
         }
     }
-//        
-//        return total;
 
-    public static List getRes3() {
+    private static List getRes() {
 
         for (int i = 0; i < ResultList3.size() - 1; i++) {
             Result result = (Result) ResultList3.get(i);
-//            System.out.println("Total for dir '" + result.path() + "' is: " + result.number());
-
             dictionary2.putIfAbsent(result.path(), result.number());
         }
 
         List<Path> AList = new ArrayList<>(dictionary2.keySet());
         Collections.sort(AList, (Path path1, Path path2) -> dictionary2.get(path1) - dictionary2.get(path2));
 
-//        System.out.println("\nAnd sorted: ");
         for (Path name : AList) {
-
             ResultList.add(name);
-
-//            String key = name.toString();
-//            String value = dictionary2.get(name).toString();
-//            System.out.println(value + " " + key);
-
-        }
-        for (Object name : ResultList){
-//            System.out.println(name);
         }
         return ResultList;
 
