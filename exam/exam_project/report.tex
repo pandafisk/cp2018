@@ -1,0 +1,70 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=2cm,right=2cm]{geometry}
+\usepackage{times}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.png}
+
+% ... rest of your preamble before the document ...
+
+\title{DM 519 - concurrent Programming \\\rule{10cm}{0.5mm}}
+\author{Troels P. Have \\E-mail: trhav17@student.sdu.dk \\Supervisor: Fabrizio Montesi\\\rule{5.5cm}{0.5mm}\\}
+\date{\today}
+
+
+\begin{document}
+\setlength{\baselineskip}{1\baselineskip} % This sets the line spacing to something that looks like 1.5 in Word
+
+\maketitle
+\begin{figure} [H] \centering
+\includegraphics[scale=0.5]{SDUlogo.png}
+\end{figure}
+ \newpage
+
+\tableofcontents
+
+
+\section{The methodology}
+\subsection{The tasks}
+The three assignments in this project was to:
+\begin{enumerate}
+\item Recursively visit all text files with a ".txt" suffix in a given directory and its subdirectories. The method was to return a list of all the files and the lowest number found in the file.
+
+\item Recursively visit all text files with a ".dat" suffix in a given directory and its subdirectories. The method looks for a file that contains a line where the numbers added together amount to at least the given parameter, \texttt{min}. When the method encounters such a file, the method needs to return immediately.
+
+\item Computes overall statistics of the occurrences of numbers in a given directory. The statistics of interrest are: The number of occurrences of a given number, \texttt{n}, The most, as well as the least frequent number, and a list of the files, ordered by the total value in the files.
+
+\end{enumerate}
+
+
+\subsection{The methodology}
+The program consists of three classes, respectively named, \texttt{assignment1}, \texttt{assignment2} \& \texttt{assignment3}, which all have their own constructor. They are all being given a path-parameter, but \texttt{assignment2} also receive a integer-parameter, \texttt{min}. 
+
+The first assignment, \texttt{m1}, calls the \texttt{dial()} function, that recursively visits all subdirectories, and opens all text files with a ".txt" suffix as a new instance of the first constuctor, \texttt{assignment1}. The constructor calls the \texttt{lowestNumber}-functions that finds the smallest number in the file, and add it to the list of Results, from the \texttt{Result}-interface required.
+
+The second assignment, \texttt{m2}, calls the function, \texttt{dial\_2()}, which recursivelt visits all subdirectories and opens all text files with a ".dat" suffix as a new instance of the second constructor, \texttt{assignment2}. The second constructor calls the function, \texttt{find}, that for each line in the document, adds the numbers together and checks whether the total value amounts to the value, \texttt{min}. If that conditions is reached, the method returns the line number, as well as the path. 
+
+The third assignment, \texttt{m3}, calls the function, \texttt{dial\_3()}, that recursively visits all subdirectories and opens all text files with either a ".txt" or a ".dat" suffix as a new instance of the third constructor, \texttt{assignment3}. The constructor calls the function \texttt{DictMaker}, that adds the values of each number on every line to a ConcurrentHashMap, that counts the instance of each number. When the dictionary is completed, the \texttt{m3} method implements the methods from the interface \texttt{Stats}.
+
+For this code to become concurrent, the constructors of each assignment implements the Runnable-interface, and that way, each time a \texttt{dial}-function is called, it gets treated as a new thread. To manage the thread, an executorService, workstealingPool, is constructed. To make sure the gathered results in the methods are thread safe, the block of code where its added is synchronized on that list.
+
+\section{Advantages}
+One of the advantages of this program is the readability. The way of using small, concise private functions and synchronizing single blocks of code, gives the reader a nice overview of the code, instead of cramming everything into one, giant block of chaoticness.  
+
+The way of using a workStealingPool, is also an advantage, due to the fact that it handles recursive functions so well. The WorkStealinPool uses parallelism and is much faster than a FixedThreadPool, that takes a fixed amount of threads and queues work when that number of threads is used. instead, a WorkStealingPool dynamically uses the threads and finds balance that way.
+
+Further more, to ensure the best- and fastest results, the program scales, according the what number of processors the computer has. By defining the variable, \texttt{cores}, the program adapts to the processing power and ensures maximum speed.
+
+\section{Limitations}
+To handle my threads, I was already from the start going to use an executorService, and the natural choice fell on a FixedThreadPool. However after some time i discovered that it handled recursion very poorly. And since a big part of the project is recursion, i then switched to a WorkStealingPool instead.
+
+Another flaw of the program is that it does not handle a number of errors, or exceptions. For example if the program gets a directory with no ".txt" or ".dat" files in it, the program will keep running forever, doing nothing, due to the fact that the executorService never is created, but never shut down, however, this could probably be handled with a try-catch statement.
+
+Furthermore, if one were to give the program a directory with text files, containing other than numbers, or "," characters, the program would give yet another exception error. this, too could probably be fixed with another try-catch statement.
+
+\end{document}
